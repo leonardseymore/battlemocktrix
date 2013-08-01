@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This file was auto-generated from WSDL -->
+<!-- by the Apache Axis2 version: 1.6.2  Built on : Apr 17, 2012 (05:33:49 IST) -->
+<serviceGroup>
+    <service name="ChallengeService" scope="application">
+        <messageReceivers>
+            <messageReceiver mep="http://www.w3.org/ns/wsdl/in-out" class="za.co.entelect.challenge.ChallengeServiceMessageReceiverInOut"/>
+        </messageReceivers>
+        <parameter name="ServiceClass">za.co.entelect.challenge.ChallengeServiceSkeleton</parameter>
+        <parameter name="useOriginalwsdl">true</parameter>
+        <parameter name="modifyUserWSDLPortAddress">true</parameter>
+        <operation name="getStatus" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://challenge.entelect.co.za/">
+            <actionMapping>http://challenge.entelect.co.za/Challenge/getStatus</actionMapping>
+            <outputActionMapping>http://challenge.entelect.co.za/Challenge/getStatusResponse</outputActionMapping>
+        </operation>
+        <operation name="setAction" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://challenge.entelect.co.za/">
+            <actionMapping>http://challenge.entelect.co.za/Challenge/setAction</actionMapping>
+            <outputActionMapping>http://challenge.entelect.co.za/Challenge/setActionResponse</outputActionMapping>
+            <faultActionMapping faultName="EndOfGameException">http://challenge.entelect.co.za/Challenge/setAction/Fault/EndOfGameException</faultActionMapping>
+            <faultActionMapping faultName="EndOfGameException_Exception">http://challenge.entelect.co.za/Challenge/setAction/Fault/EndOfGameException</faultActionMapping>
+        </operation>
+        <operation name="login" mep="http://www.w3.org/ns/wsdl/in-out" namespace="http://challenge.entelect.co.za/">
+            <actionMapping>http://challenge.entelect.co.za/Challenge/login</actionMapping>
+            <outputActionMapping>http://challenge.entelect.co.za/Challenge/loginResponse</outputActionMapping>
+            <faultActionMapping faultName="NoBlameException">http://challenge.entelect.co.za/Challenge/login/Fault/NoBlameException</faultActionMapping>
+            <faultActionMapping faultName="NoBlameException_Exception">http://challenge.entelect.co.za/Challenge/login/Fault/NoBlameException</faultActionMapping>
+            <faultActionMapping faultName="EndOfGameException">http://challenge.entelect.co.za/Challenge/login/Fault/EndOfGameException</faultActionMapping>
+            <faultActionMapping faultName="EndOfGameException_Exception">http://challenge.entelect.co.za/Challenge/login/Fault/EndOfGameException</faultActionMapping>
+        </operation>
+    </service>
+</serviceGroup>
