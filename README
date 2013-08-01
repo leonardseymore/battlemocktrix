@@ -1,7 +1,2 @@
--- GENERATE SOURCE FILES
-wsdl2java.sh -d jaxbri -or -ss -sd -g -uri ~/src/trunk/pet.projects/java/entelect/ChallengeService.wsdl
-
--- RUN AXIS2 SERVICE (May require AXIS2_HOME)
-ant start.server
-
- 
+Welcome to Battlemocktrix!
+Please see wiki for details.
