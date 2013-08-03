@@ -9,7 +9,9 @@
   <xs:element name="setAction" type="tns:setAction"/>
   <xs:element name="setActionResponse" type="tns:setActionResponse"/>
   <xs:complexType name="getStatus">
-    <xs:sequence/>
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="1" name="playerName" type="xs:string"/>
+    </xs:sequence>
   </xs:complexType>
   <xs:complexType name="getStatusResponse">
     <xs:sequence>
@@ -113,6 +115,7 @@
   <xs:complexType name="loginResponse">
     <xs:sequence>
       <xs:element minOccurs="0" name="return" type="tns:board"/>
+      <xs:element minOccurs="0" name="playerName" type="xs:string"/>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="board">

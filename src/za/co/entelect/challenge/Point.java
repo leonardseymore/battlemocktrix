@@ -70,4 +70,12 @@ public class Point {
     this.y = value;
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("{");
+    sb.append("x=").append(x);
+    sb.append(", y=").append(y);
+    sb.append('}');
+    return sb.toString();
+  }
 }

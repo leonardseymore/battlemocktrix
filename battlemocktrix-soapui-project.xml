@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:chal="http://challenge.entelect.co.za/">
+   <soapenv:Header/>
    <soapenv:Body>
-      <ns2:setAction xmlns:ns2="http://challenge.entelect.co.za/"/>
+      <chal:setAction>
+         <arg0>1</arg0>
+         <!--Optional:-->
+         <arg1>UP</arg1>
+      </chal:setAction>
    </soapenv:Body>
 </soapenv:Envelope>

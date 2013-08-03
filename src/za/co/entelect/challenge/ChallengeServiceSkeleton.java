@@ -27,10 +27,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ChallengeServiceSkeleton implements Lifecycle {
 
   public static final AtomicInteger ID_GEN = new AtomicInteger();
-  public static final long TICK_INTERVAL = 3000;
+  public static final long TICK_INTERVAL = 1000;
   public static final String PLAYER1_NAME = "player1";
   public static final String PLAYER2_NAME = "player2";
   public static final File OUTPUT_DIR = new File("/tmp/bm");
+  public static final boolean ENABLE_OUTPUT_DIR = false;
 
   private int width;
   private int height;
@@ -47,13 +48,82 @@ public class ChallengeServiceSkeleton implements Lifecycle {
   private Map<Unit, Bullet> bulletUnit = new HashMap<>();
   private Map<Integer, Action> actions = new HashMap<>();
 
-  private Events events = new Events();
+  private Events player1Events = new Events();
+  private Events player2Events = new Events();
 
   private boolean gameOver;
   private Player winner;
 
+  public ChallengeServiceSkeleton() {
+  }
+
+  public int getWidth() {
+    return width;
+  }
+
+  public int getHeight() {
+    return height;
+  }
+
+  public Timer getTimer() {
+    return timer;
+  }
+
+  public Board getBoard() {
+    return board;
+  }
+
+  public Game getGame() {
+    return game;
+  }
+
+  public List<Player> getPlayers() {
+    return players;
+  }
+
+  public List<StateArray> getStateArrays() {
+    return stateArrays;
+  }
+
+  public Map<Unit, Player> getUnits() {
+    return units;
+  }
+
+  public Map<Bullet, Player> getBulletPlayer() {
+    return bulletPlayer;
+  }
+
+  public Map<Unit, Bullet> getBulletUnit() {
+    return bulletUnit;
+  }
+
+  public Map<Integer, Action> getActions() {
+    return actions;
+  }
+
+  public Events getPlayer1Events() {
+    return player1Events;
+  }
+
+  public Events getPlayer2Events() {
+    return player2Events;
+  }
+
+  public boolean isGameOver() {
+    return gameOver;
+  }
+
+  public Player getWinner() {
+    return winner;
+  }
+
   @Override
   public void init(ServiceContext serviceContext) throws AxisFault {
+    GUI app = new GUI(this, 5);
+    app.setVisible(true);
+    Thread gameThread = new Thread(app);
+    gameThread.start();
+
     try {
       FileUtils.forceDelete(OUTPUT_DIR);
       FileUtils.forceMkdir(OUTPUT_DIR);
@@ -100,9 +170,14 @@ public class ChallengeServiceSkeleton implements Lifecycle {
 
   public GetStatusResponse getStatus(GetStatus getStatus) {
     GetStatusResponse resp = new GetStatusResponse();
-    game.setEvents(events);
+    if (PLAYER1_NAME.equals(getStatus.getPlayerName())) {
+      game.setEvents(player1Events);
+      player1Events = new Events();
+    } else if (PLAYER2_NAME.equals(getStatus.getPlayerName())) {
+      game.setEvents(player2Events);
+      player2Events = new Events();
+    }
     resp.setReturn(game);
-    events = new Events();
     return resp;
   }
 
@@ -122,9 +197,12 @@ public class ChallengeServiceSkeleton implements Lifecycle {
 
     if (players.size() == 0) {
       players.add(player1);
+      resp.setPlayerName(player1.getName());
+      System.out.println(player1.getName() + " logged in");
     } else if (players.size() == 1) {
       players.add(player2);
-
+      resp.setPlayerName(player2.getName());
+      System.out.println(player2.getName() + " logged in");
       timer.scheduleAtFixedRate(new TimerTask() {
         @Override
         public void run() {
@@ -163,11 +241,13 @@ public class ChallengeServiceSkeleton implements Lifecycle {
    * 4) Collisions are checked for.
    */
   public void update() {
-    try(FileWriter fileWriter = new FileWriter(new File(OUTPUT_DIR, "bm-" + game.getCurrentTick() + ".ppm"))) {
-      String ppm = Util.toPpm(board, this, width, height);
-      fileWriter.write(ppm);
-    } catch (IOException ex) {
-      ex.printStackTrace();
+    if (ENABLE_OUTPUT_DIR) {
+      try(FileWriter fileWriter = new FileWriter(new File(OUTPUT_DIR, "bm-" + game.getCurrentTick() + ".ppm"))) {
+        String ppm = Util.toPpm(board, this, width, height);
+        fileWriter.write(ppm);
+      } catch (IOException ex) {
+        ex.printStackTrace();
+      }
     }
 
     if (gameOver) {
@@ -194,7 +274,6 @@ public class ChallengeServiceSkeleton implements Lifecycle {
     bullets.addAll(player1.getBullets());
     bullets.addAll(player2.getBullets());
 
-    Collection<Bullet> bulletsToRemove = new java.util.ArrayList<>();
     for (Bullet bullet : bullets) {
       int x = bullet.getX();
       int y = bullet.getY();
@@ -213,14 +292,22 @@ public class ChallengeServiceSkeleton implements Lifecycle {
           break;
       }
       if (x < 0 || y < 0 || x > width - 1 || y > height - 1) {
-        bulletsToRemove.add(bullet);
+        for (Map.Entry<Unit, Bullet> unitBulletEntry : bulletUnit.entrySet()) {
+          if (unitBulletEntry.getValue() == bullet) {
+            bulletUnit.remove(unitBulletEntry.getKey());
+            Player player = bulletPlayer.remove(bullet);
+            player.getBullets().remove(bullet);
+            // TODO: create bullet event
+          }
+        }
       } else {
         bullet.setX(x);
         bullet.setY(y);
         Collision collision = checkEntityCollision(bullet);
         if (collision != null) {
-          bulletsToRemove.add(bullet);
-          Player owner;
+          // TODO: create bullet event
+          Player owner = bulletPlayer.remove(bullet);
+          owner.getBullets().remove(bullet);
           switch (collision.type) {
             case BulletBase:
               gameOver = true;
@@ -233,13 +320,13 @@ public class ChallengeServiceSkeleton implements Lifecycle {
               return;
             case BulletBullet:
               Bullet obullet = (Bullet) collision.target;
-              owner = bulletPlayer.remove(obullet);
-              owner.getBullets().remove(obullet);
+              Player oowner = bulletPlayer.remove(obullet);
+              oowner.getBullets().remove(obullet);
               break;
             case BulletTank:
               Unit tank = (Unit) collision.target;
-              owner = units.remove(tank);
-              owner.getUnits().remove(tank);
+              Player towner = units.remove(tank);
+              towner.getUnits().remove(tank);
               break;
             case BulletWall:
               destroyWalls(x, y, bullet.getDirection());
@@ -251,13 +338,14 @@ public class ChallengeServiceSkeleton implements Lifecycle {
   }
 
   public boolean hasWall(int x, int y) {
-    return stateArrays.get(x).getItem().get(y) == State.FULL;
+    return stateArrays.get(y).getItem().get(x) == State.FULL;
   }
 
   public void destroyWalls(int x, int y, Direction direction) {
     if (hasWall(x, y)) {
-      stateArrays.get(x).getItem().set(y, State.NONE);
-      events.getBlockEvents().add(new BlockEvent(State.NONE, new Point(x, y)));
+      stateArrays.get(y).getItem().set(x, State.EMPTY);
+      player1Events.getBlockEvents().add(new BlockEvent(State.EMPTY, new Point(x, y)));
+      player2Events.getBlockEvents().add(new BlockEvent(State.EMPTY, new Point(x, y)));
       if (direction == Direction.UP || direction == Direction.DOWN) {
         if (destroyIfNeighborWall(x - 1, y)) {
           destroyIfNeighborWall(x - 2, y);
@@ -282,8 +370,9 @@ public class ChallengeServiceSkeleton implements Lifecycle {
     }
 
     if (hasWall(x, y)) {
-      stateArrays.get(x).getItem().set(y, State.NONE);
-      events.getBlockEvents().add(new BlockEvent(State.NONE, new Point(x, y)));
+      stateArrays.get(y).getItem().set(x, State.EMPTY);
+      player1Events.getBlockEvents().add(new BlockEvent(State.EMPTY, new Point(x, y)));
+      player2Events.getBlockEvents().add(new BlockEvent(State.EMPTY, new Point(x, y)));
       return true;
     }
     return false;
@@ -392,6 +481,10 @@ public class ChallengeServiceSkeleton implements Lifecycle {
                   player = units.remove(tank);
                   player.getUnits().remove(tank);
                   break;
+                default:
+                  tank.setX(oldX);
+                  tank.setY(oldY);
+                  break;
               }
             } else {
               moveTank(tank);
@@ -407,7 +500,8 @@ public class ChallengeServiceSkeleton implements Lifecycle {
     e.setUnit(tank);
     e.setTickTime(game.getCurrentTick());
     e.setBullet(bulletUnit.get(tank));
-    events.getUnitEvents().add(e);
+    player1Events.getUnitEvents().add(e);
+    player2Events.getUnitEvents().add(e);
   }
 
   public Object getEntityAt(int x, int y) {
@@ -492,28 +586,29 @@ public class ChallengeServiceSkeleton implements Lifecycle {
         switch (tank.getDirection()) {
           case UP:
             bulletX = tank.getX();
-            bulletY = tank.getY() - 2;
+            bulletY = tank.getY() - 3;
             break;
           case RIGHT:
-            bulletX = tank.getX() + 2;
+            bulletX = tank.getX() + 3;
             bulletY = tank.getY();
             break;
           case DOWN:
             bulletX = tank.getX();
-            bulletY = tank.getY() + 2;
+            bulletY = tank.getY() + 3;
             break;
           case LEFT:
-            bulletX = tank.getX() - 2;
+            bulletX = tank.getX() - 3;
             bulletY = tank.getY();
             break;
         }
         Bullet bullet = new Bullet();
         bullet.setX(bulletX);
         bullet.setY(bulletY);
-        int id = ID_GEN.incrementAndGet();
-        bullet.setId(id);
-        bulletUnit.put(tank, bullet);
+        bullet.setDirection(tank.getDirection());
         if (isInBounds(bullet.getX(), bullet.getY())) {
+          int id = ID_GEN.incrementAndGet();
+          bullet.setId(id);
+          bulletUnit.put(tank, bullet);
           Object entity = getEntityAt(bulletX, bulletY);
           if (hasWall(bulletX, bulletY)) {
             destroyWalls(bulletX, bulletY, bullet.getDirection());

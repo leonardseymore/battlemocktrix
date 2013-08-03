@@ -49,6 +49,8 @@ public class Unit {
   public Unit(int x, int y) {
     this.x = x;
     this.y = y;
+    this.direction = Direction.UP;
+    this.action = Action.NONE;
   }
 
   /**
